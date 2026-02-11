@@ -729,11 +729,36 @@
                     color: countryColors[row['Strong Country']] || '#1a2a4a'
                 }));
 
-                // Sort by points descending, then by gold
-                competitors.sort((a, b) => b.points - a.points || b.gold - a.gold);
+                // Sort by points descending, then by gold, then by silver
+                competitors.sort((a, b) => {
+                    if (b.points !== a.points) return b.points - a.points;
+                    if (b.gold !== a.gold) return b.gold - a.gold;
+                    if (b.silver !== a.silver) return b.silver - a.silver;
+                    return b.bronze - a.bronze;
+                });
                 
-                // Update ranks after sorting
-                competitors.forEach((c, idx) => c.rank = idx + 1);
+                // Update ranks after sorting - handle ties
+                let currentRank = 1;
+                for (let i = 0; i < competitors.length; i++) {
+                    if (i === 0) {
+                        competitors[i].rank = currentRank;
+                    } else {
+                        const prev = competitors[i - 1];
+                        const curr = competitors[i];
+                        
+                        // Check if tied with previous competitor
+                        if (curr.points === prev.points && 
+                            curr.gold === prev.gold && 
+                            curr.silver === prev.silver && 
+                            curr.bronze === prev.bronze) {
+                            // Same rank as previous
+                            curr.rank = prev.rank;
+                        } else {
+                            // Rank is position + 1 (accounts for skipped ranks from ties)
+                            curr.rank = i + 1;
+                        }
+                    }
+                }
 
                 updateDisplay();
             } catch (error) {
