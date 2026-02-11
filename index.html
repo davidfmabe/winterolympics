@@ -653,20 +653,58 @@
             { rank: 16, name: "Megan Williams", strong: "Australia", dark: "Liechtenstein", gold: 0, silver: 0, bronze: 0, points: 0, color: "#00008B" }
         ];
 
-        // Parse CSV data
+        // Parse CSV data - handles quoted fields properly
         function parseCSV(csv) {
             const lines = csv.trim().split('\n');
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            const headers = [];
             const data = [];
             
+            // Parse header row
+            const headerLine = lines[0];
+            let inQuotes = false;
+            let currentField = '';
+            for (let i = 0; i < headerLine.length; i++) {
+                const char = headerLine[i];
+                if (char === '"') {
+                    inQuotes = !inQuotes;
+                } else if (char === ',' && !inQuotes) {
+                    headers.push(currentField.trim());
+                    currentField = '';
+                } else {
+                    currentField += char;
+                }
+            }
+            headers.push(currentField.trim());
+            
+            // Parse data rows
             for (let i = 1; i < lines.length; i++) {
-                const values = lines[i].match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-                if (!values) continue;
+                const line = lines[i];
+                if (!line.trim()) continue;
                 
                 const row = {};
-                values.forEach((val, idx) => {
-                    row[headers[idx]] = val.replace(/"/g, '').trim();
-                });
+                let fieldIdx = 0;
+                inQuotes = false;
+                currentField = '';
+                
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        if (headers[fieldIdx]) {
+                            row[headers[fieldIdx]] = currentField.trim();
+                        }
+                        currentField = '';
+                        fieldIdx++;
+                    } else {
+                        currentField += char;
+                    }
+                }
+                // Don't forget the last field
+                if (headers[fieldIdx]) {
+                    row[headers[fieldIdx]] = currentField.trim();
+                }
+                
                 data.push(row);
             }
             return data;
